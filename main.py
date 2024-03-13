@@ -15,7 +15,7 @@ def main(num_samples =  10, max_num_epochs=10, gpus_per_trial=2):
     config = {
         "learning_rate": tune.loguniform(1e-4, 1e-2),
         "batch_size": tune.choice([16, 32, 64, 128]),
-        "l1": tune.grid_search([4, 8, 16, 64]),
+        "l1": tune.choice([4, 8, 16, 64]),
         "epochs": tune.choice([100, 200, 250, 300]),
         "optimizer": tune.choice(["Adam", "AdamW","SGD","RMSprop"]),
         "weight_decay": tune.loguniform(1e-5, 1e-3),  # Added weight_decay,
@@ -55,13 +55,13 @@ def main(num_samples =  10, max_num_epochs=10, gpus_per_trial=2):
         param_space=config,
         
         run_config=train.RunConfig(
-            name="pm25_exp7",
+            name="pm25_exp8",
             stop={"training_iteration": 100},
            checkpoint_config=train.CheckpointConfig(
                checkpoint_score_attribute="loss",
                num_to_keep=10,
            ),
-            storage_path="/ray_results/logs",
+            storage_path="/Users/tayvenstover/ray_results/logs",
             log_to_file=True
         ),)
     
@@ -87,4 +87,4 @@ def main(num_samples =  10, max_num_epochs=10, gpus_per_trial=2):
     print("Best trial test set r2score: {}".format(test_r2score))
     
 
-main(num_samples = 5, max_num_epochs=25, gpus_per_trial=0)
+main(num_samples = 2, max_num_epochs=25, gpus_per_trial=0)

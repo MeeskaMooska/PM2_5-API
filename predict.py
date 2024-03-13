@@ -4,6 +4,7 @@ Created on Wed Mar  6 23:52:49 2024
 
 @author: anush
 """
+# Modified to work with API by Tayven Stover 3/13/24
 import os
 from ray import tune, train
 from ray.tune import ResultGrid
@@ -22,10 +23,10 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 
-storage_path="/ray_results/logs"
-exp_name = 'pm25_exp5'
+storage_path="/Users/tayvenstover/ray_results/logs"
+exp_name = 'pm25_exp8'
 experiment_path = os.path.join(storage_path, exp_name)
-print(f"Loading results from {experiment_path}...")
+#print(f"Loading results from {experiment_path}...")
 
 restored_tuner = tune.Tuner.restore(experiment_path, trainable=train_model)
 result_grid = restored_tuner.get_results()
@@ -44,15 +45,16 @@ net.load_state_dict(model_state)
     
 
 
-data_dir = '/TestData'
-file_name = 'EPA1336~PA16541.csv'
+data_dir = 'TestData'
+file_name = 'EPA1336~PA16541.csv' #TODO this is hardcoded, eventually, using colocation this will be automated.
 data = pd.read_csv(os.path.join(data_dir, file_name))
-    
-with open('scaler.pkl', 'rb') as f:
+
+with open('./scaler.pkl', 'rb') as f:
     loaded_scaler = pickle.load(f)
     
 # Convert the 'datetime' column to a datetime object
 data['datetime'] = pd.to_datetime(data['datetime'])
+time_data = data['datetime'].tolist()
     
 # Set the 'datetime' column as the index
 data.set_index('datetime', inplace=True)
@@ -65,7 +67,7 @@ for column in numeric_columns:
         
 # Aggregate the data to hourly granularity and drop rows with missing values
 hourly_data = data[numeric_columns].groupby(pd.Grouper(freq='h')).mean().dropna(subset=['epa_pm25', 'pm25_cf_1'])
-print(hourly_data.head())
+#print(hourly_data.head())
     
 X = hourly_data[['pm25_cf_1', 'temperature', 'humidity']].reset_index(drop=True)
 y = hourly_data['epa_pm25'].reset_index(drop=True)
@@ -85,7 +87,7 @@ with torch.no_grad():  # Inference mode, no gradients needed
     for batch in sensor_pair_loader:
         X_batch, y_batch = batch
         y_pred = net(X_batch)  # Perform the forward pass
-        print(y_pred.detach().numpy(), y_batch.detach().numpy())
+        #print(y_pred.detach().numpy(), y_batch.detach().numpy())
         predictions.extend(y_pred.detach().numpy())  # Collect predictions
         actuals.extend(y_batch.detach().numpy())  # Collect actual values
 
@@ -94,50 +96,14 @@ predictions = np.array(predictions).flatten()
 actuals = np.array(actuals).flatten()
 uncalibrate = hourly_data['pm25_cf_1'].values.flatten()
 
-results_df = pd.DataFrame({
-    'Actual': actuals,
-    'Predicted': predictions,
-    'Uncalibrated': uncalibrate
-}, index=hourly_data.index)
+def format_results():
+    results = {
+        'prediction_data': [],
+    }
+    predicted = predictions.tolist()
+    uncalibrated = uncalibrate.tolist()
 
-
-
-# Convert index to datetime if it's not already
-results_df.index = pd.to_datetime(results_df.index)
-
-# Find where the gaps are (more than 1 hour for example)
-gaps = results_df.index.to_series().diff() > pd.Timedelta('1 hour')
-
-# Plotting
-plt.figure(figsize=(12, 10))
-
-# Iterate over the DataFrame and plot only continuous sections
-for _, sub_df in results_df[~gaps].groupby(gaps.cumsum()):
-    plt.plot(sub_df.index, sub_df['Actual'], label='EPA', linewidth=3, color='royalblue')
-    plt.plot(sub_df.index, sub_df['Predicted'], label='Calibrated PurpleAir', color='red', alpha=0.7, linewidth=3)
-    plt.plot(sub_df.index, sub_df['Uncalibrated'], label='Uncalibrated', color='orange', alpha=0.7, linewidth=3)
-
-# Increase font size for readability
-plt.rcParams.update({'font.size': 14})
-
-# Date formatting on the x-axis
-plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
-plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-
-# Titles and labels
-# Adding a grid
-plt.grid(color='lightblue', linestyle='-', linewidth=0.5, alpha=0.7)
-plt.grid(True)  # Show grid
-plt.title('PM2.5 Actual vs Predicted', fontsize = 16)
-plt.xlabel('Date and Time', fontsize = 14)
-plt.ylabel('PM2.5 Concentration (μg/m³)', fontsize = 14)
-plt.xticks(rotation=45)
-
-# Only add legend once
-handles, labels = plt.gca().get_legend_handles_labels()
-by_label = dict(zip(labels, handles))
-plt.legend(by_label.values(), by_label.keys())
-
-plt.tight_layout()
-plt.savefig('predicted.png', dpi=300, bbox_inches='tight')  # Save the figure
-plt.show()
+    for i in range(len(time_data)):
+        results['prediction_data'].append({'datetime': time_data[i], 'raw': uncalibrated[i], 'prediction': predicted[i]})
+    
+    return results

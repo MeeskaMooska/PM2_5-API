@@ -68,16 +68,16 @@ def get_data(data_directory):
     # y_test_df = pd.DataFrame(y_test, columns=['epa_pm25'])
     
     # Assuming X_train, X_val, X_test, y_train, y_val, y_test are your datasets
-    with open('train_data.pkl', 'wb') as f:
+    with open('./train_data.pkl', 'wb') as f:
         pickle.dump((X_train_scaled, y_train), f)
     
-    with open('val_data.pkl', 'wb') as f:
+    with open('./val_data.pkl', 'wb') as f:
         pickle.dump((X_val_scaled, y_val), f)
     
-    with open('test_data.pkl', 'wb') as f:
+    with open('./test_data.pkl', 'wb') as f:
         pickle.dump((X_test_scaled, y_test), f)
 
-    with open('scaler.pkl', 'wb') as f:
+    with open('./scaler.pkl', 'wb') as f:
         pickle.dump(scaler, f)
 
     # Store the dataframes in data_splits instead of numpy arrays
@@ -92,5 +92,5 @@ def get_data(data_directory):
 
 
 if __name__ == "__main__":
-    data_dir = '/TrainData'
+    data_dir = 'TrainData'
     get_data(data_dir)

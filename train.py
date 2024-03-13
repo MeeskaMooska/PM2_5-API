@@ -75,10 +75,14 @@ def train_model(config):
             optimizer.load_state_dict(optimizer_state)
             
     # 6. load data
-    with open('/train_data.pkl', 'rb') as f:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    train_path = os.path.join(script_dir, 'train_data.pkl')
+    with open(train_path, 'rb') as f:
         X_train, y_train = pickle.load(f)
 
-    with open('/val_data.pkl', 'rb') as f:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    val_path = os.path.join(script_dir, 'val_data.pkl')
+    with open(val_path, 'rb') as f:
         X_val, y_val = pickle.load(f)
         
     # X_train = pd.DataFrame(X_train)
@@ -219,8 +223,9 @@ def test_accuracy(best_result, plot=True):
     best_trained_model.load_state_dict(model_state)
     
     print('Loading the test data...')
-
-    with open('/test_data.pkl', 'rb') as f:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(script_dir, 'test_data.pkl')
+    with open(file_path, 'rb') as f:
         X_test, y_test = pickle.load(f)
         
     # X_test = pd.DataFrame(X_test)
